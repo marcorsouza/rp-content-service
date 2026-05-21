@@ -220,39 +220,39 @@ DiscoveredNews
 > IA classifica tier, admin configura fontes pela UI.
 
 **rp-content-service:**
-- [ ] Integração OpenAI: classificar tier 1/2/3 com base em nome + localidade + data
-- [ ] `confidence` score retornado pela IA
+- [x] Integração OpenAI: classificar tier 1/2/3 com base em nome + localidade + data
+- [x] `confidence` score retornado pela IA
 - [ ] Mais fontes: Central da Corrida, Ativo.com
-- [ ] APScheduler: job diário automático às 05:00
+- [x] APScheduler: job diário automático às 05:00
 
 **rp-frontend:**
-- [ ] Tab "Fontes" em `/platform/content-radar/sources`
+- [x] Tab "Fontes" em `/platform/content-radar/sources`
   - Lista de `ContentSource` com tipo, estado, ativo/inativo
   - Criar / editar / ativar / desativar fonte
-- [ ] API routes:
+- [x] API routes:
   - `GET /api/platform/content-radar/sources`
   - `POST /api/platform/content-radar/sources`
   - `PATCH /api/platform/content-radar/sources/[id]`
-- [ ] Tab "Histórico" — lista de `ContentDiscoveryRun` com status, duração, erros
-- [ ] Cron VPS: `POST /jobs/races/run` diário (registrar no CLAUDE.md da VPS)
+- [x] Tab "Histórico" — lista de `ContentDiscoveryRun` com status, duração, erros
+- [x] Cron interno via APScheduler: `POST /jobs/races/run` equivalente diário
 
 ### MVP 3 — Radar de Notícias
 > IA gera rascunho de notícia a partir de matéria externa.
 
 **rp-content-service:**
-- [ ] Endpoint `POST /jobs/news/run`
-- [ ] Integração RSS: Google News, Central da Corrida, Runners Brasil
-- [ ] IA: gerar `suggestedTitle` + `summary` original
-- [ ] Deduplicação por `sourceUrl`
+- [x] Endpoint `POST /jobs/news/run`
+- [x] Integração RSS: Google News, Webrun
+- [x] IA: gerar `suggestedTitle` + `summary` original
+- [x] Deduplicação por `sourceUrl`
 
 **rp-frontend:**
-- [ ] Schema Prisma: modelo `DiscoveredNews`
-- [ ] Migration SQL correspondente
-- [ ] Tab "Notícias" em `/platform/content-radar`
+- [x] Schema Prisma: modelo `DiscoveredNews`
+- [x] Migration SQL correspondente
+- [x] Tab "Notícias" em `/platform/content-radar`
   - Lista de `DiscoveredNews` com título sugerido, resumo, fonte, categoria, status
   - Ação **Aprovar** → cria `NewsPost` como DRAFT
   - Ação **Rejeitar** / **Editar antes de aprovar**
-- [ ] API routes:
+- [x] API routes:
   - `GET /api/platform/content-radar/news`
   - `POST /api/platform/content-radar/news/[id]/approve`
   - `POST /api/platform/content-radar/news/[id]/reject`
@@ -262,10 +262,10 @@ DiscoveredNews
 > Admin recebe alerta de novos itens pendentes.
 
 **rp-frontend:**
-- [ ] Badge com contador de `status: NEW` no item do sidebar da platform
-- [ ] Notificação in-app para o admin ao final de cada job (N corridas, M notícias novas)
-- [ ] Filtros na tela de revisão: por tier, estado, fonte, data, confidence
-- [ ] Export CSV das descobertas por período
+- [x] Badge com contador de `status: NEW` no item do sidebar da platform
+- [x] Notificação in-app para o admin ao final de cada job (N corridas, M notícias novas)
+- [x] Filtros na tela de revisão: por tier, estado, fonte, confidence
+- [x] Export CSV das descobertas carregadas na revisão
 
 ---
 
@@ -284,16 +284,16 @@ DiscoveredNews
 | 7 | rp-frontend | Sidebar platform: entrada "Radar de Conteúdo" | 1 | ✅ |
 | 8 | rp-frontend | Página `/platform/content-radar` — tab Corridas + ações | 1 | ✅ |
 | 9 | rp-frontend | API routes approve/reject/duplicate/edit (corridas) | 1 | ✅ |
-| 10 | rp-content-service | Classificação tier por IA (OpenAI) + confidence | 2 | 📋 |
-| 11 | rp-frontend | Tab "Fontes" + CRUD de ContentSource | 2 | 📋 |
-| 12 | rp-frontend | Tab "Histórico" — ContentDiscoveryRun | 2 | 📋 |
-| 13 | rp-content-service | APScheduler: job diário às 05:00 | 2 | 📋 |
-| 14 | rp-frontend | Schema Prisma: `DiscoveredNews` + migration | 3 | 📋 |
-| 15 | rp-content-service | Endpoint `POST /jobs/news/run` + parsers RSS | 3 | 📋 |
-| 16 | rp-content-service | IA gera `suggestedTitle` + `summary` | 3 | 📋 |
-| 17 | rp-frontend | Tab "Notícias" + ações + API routes | 3 | 📋 |
-| 18 | rp-frontend | Badge de pendentes no sidebar + notificação admin | 4 | 📋 |
-| 19 | rp-frontend | Filtros por tier/estado/fonte/confidence + CSV export | 4 | 📋 |
+| 10 | rp-content-service | Classificação tier por IA (OpenAI) + confidence | 2 | ✅ |
+| 11 | rp-frontend | Tab "Fontes" + CRUD de ContentSource | 2 | ✅ |
+| 12 | rp-frontend | Tab "Histórico" — ContentDiscoveryRun | 2 | ✅ |
+| 13 | rp-content-service | APScheduler: job diário às 05:00 | 2 | ✅ |
+| 14 | rp-frontend | Schema Prisma: `DiscoveredNews` + migration | 3 | ✅ |
+| 15 | rp-content-service | Endpoint `POST /jobs/news/run` + parsers RSS | 3 | ✅ |
+| 16 | rp-content-service | IA gera `suggestedTitle` + `summary` | 3 | ✅ |
+| 17 | rp-frontend | Tab "Notícias" + ações + API routes | 3 | ✅ |
+| 18 | rp-frontend | Badge de pendentes no sidebar + notificação admin | 4 | ✅ |
+| 19 | rp-frontend | Filtros por tier/estado/fonte/confidence + CSV export | 4 | ✅ |
 
 ---
 
