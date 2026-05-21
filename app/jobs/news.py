@@ -12,6 +12,7 @@ from app.ai import suggest_news_draft
 from app.config import get_settings
 from app.models import (
     ContentDiscoveryRun,
+    ContentSource,
     ContentSourceType,
     DiscoveredContentStatus,
     DiscoveredNews,
@@ -19,7 +20,7 @@ from app.models import (
     DiscoveryRunStatus,
 )
 from app.news_ranking import rank_news_items
-from app.parsers.news_rss import fetch_news
+from app.parsers.news_rss import DEFAULT_FEEDS, fetch_news
 from app.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -50,12 +51,24 @@ async def run_news_job(session: AsyncSession) -> dict:
     errors: list[str] = []
     seen_urls: set[str] = set()
 
+    # Merge hardcoded feeds with active NEWS sources from DB
+    db_sources_result = await session.execute(
+        select(ContentSource).where(
+            ContentSource.type == ContentSourceType.NEWS,
+            ContentSource.isActive.is_(True),
+        )
+    )
+    db_sources = db_sources_result.scalars().all()
+    db_feeds: tuple[tuple[str, str], ...] = tuple((s.name, s.baseUrl) for s in db_sources)
+    all_feeds = DEFAULT_FEEDS + db_feeds
+    logger.info("News job: %d feeds hardcoded + %d do banco", len(DEFAULT_FEEDS), len(db_feeds))
+
     async with httpx.AsyncClient(
         headers={"User-Agent": "RunPersonal-ContentRadar/1.0 (+https://runnerpersonal.zenslab.com.br)"},
         timeout=20,
     ) as client:
         try:
-            raw_items = await fetch_news(client)
+            raw_items = await fetch_news(client, feeds=all_feeds)
         except Exception as exc:
             raw_items = []
             errors.append(f"RSS: {exc}")
