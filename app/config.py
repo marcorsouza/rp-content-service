@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     api_key: str = "dev-content-api-key"
     openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
     log_level: str = "INFO"
 
     @property

@@ -49,6 +49,7 @@ rp-content-service/
 | `DATABASE_URL` | URL do PostgreSQL compartilhado com o frontend. |
 | `API_KEY` | Chave exigida em endpoints internos. |
 | `OPENAI_API_KEY` | Chave para classificacao e resumo via IA. Opcional no MVP. |
+| `OPENAI_MODEL` | Modelo usado para classificacao e resumos. Padrao: `gpt-4o-mini`. |
 | `LOG_LEVEL` | Nivel de log. Padrao: `INFO`. |
 
 ## Desenvolvimento
@@ -91,6 +92,7 @@ Endpoints planejados:
 - O servico nao deve publicar corrida ou noticia automaticamente.
 - Todo resultado descoberto deve entrar como pendente de revisao.
 - Todo conteudo gerado por IA deve preservar link da fonte.
+- Sem `OPENAI_API_KEY`, o servico usa classificacao heuristica para nao bloquear demo/dev.
 - Noticias devem ser resumidas em texto original, sem copiar materia integral.
 - Corridas devem ser deduplicadas por nome, data, cidade/estado e fonte.
 
