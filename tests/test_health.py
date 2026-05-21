@@ -17,6 +17,12 @@ def test_jobs_races_requires_api_key() -> None:
     assert response.status_code == 401
 
 
+def test_jobs_news_requires_api_key() -> None:
+    client = TestClient(app)
+    response = client.post("/jobs/news/run")
+    assert response.status_code == 401
+
+
 def test_jobs_races_valid_api_key() -> None:
     """With valid API key, endpoint is reached (DB error expected in test env)."""
     client = TestClient(app)

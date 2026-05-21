@@ -80,13 +80,13 @@ poetry run pytest
 | Metodo | Rota | Descricao |
 | --- | --- | --- |
 | `GET` | `/health` | Status do servico. |
+| `POST` | `/jobs/races/run` | Executa descoberta de corridas sob demanda. |
+| `POST` | `/jobs/news/run` | Executa descoberta de noticias sob demanda. |
 
 Endpoints planejados:
 
 | Metodo | Rota | Descricao |
 | --- | --- | --- |
-| `POST` | `/jobs/races/run` | Executa descoberta de corridas sob demanda. |
-| `POST` | `/jobs/news/run` | Executa descoberta de noticias sob demanda. |
 | `GET` | `/sources` | Lista fontes monitoradas. |
 | `POST` | `/sources` | Cadastra fonte monitorada. |
 

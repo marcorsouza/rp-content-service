@@ -21,6 +21,14 @@ class RaceClassification:
     summary: str
 
 
+@dataclass(frozen=True)
+class NewsSuggestion:
+    suggested_title: str
+    summary: str
+    category: str
+    confidence: float
+
+
 TIER_1_KEYWORDS = (
     "maratona",
     "marathon",
@@ -138,3 +146,78 @@ async def classify_race_tier(race: dict) -> RaceClassification:
     except Exception as exc:
         logger.warning("AI race classification failed, using heuristic fallback: %s", exc)
         return heuristic_race_classification(race)
+
+
+def heuristic_news_suggestion(item: dict) -> NewsSuggestion:
+    title = str(item.get("originalTitle") or item.get("title") or "").strip()
+    description = str(item.get("description") or "").strip()
+    text = f"{title} {description}".lower()
+
+    if any(keyword in text for keyword in ("maratona", "corrida", "prova", "inscricao", "calendario")):
+        category = "RACE"
+    elif any(keyword in text for keyword in ("saude", "lesao", "nutricao", "cardio", "sono")):
+        category = "HEALTH"
+    elif any(keyword in text for keyword in ("treino", "pace", "performance", "recorde", "elite")):
+        category = "PERFORMANCE"
+    elif any(keyword in text for keyword in ("mercado", "marca", "evento", "patrocinio")):
+        category = "MARKET"
+    else:
+        category = "GENERAL"
+
+    suggested_title = title[:120] if title else "Noticia de corrida para revisar"
+    clean_description = re.sub(r"<[^>]+>", "", description).strip()
+    summary = clean_description[:500] if clean_description else (
+        "Resumo pendente de revisao editorial. Confirmar conteudo na fonte antes de publicar."
+    )
+    return NewsSuggestion(
+        suggested_title=suggested_title,
+        summary=summary,
+        category=category,
+        confidence=0.62,
+    )
+
+
+async def suggest_news_draft(item: dict) -> NewsSuggestion:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return heuristic_news_suggestion(item)
+
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    prompt = {
+        "originalTitle": item.get("originalTitle") or item.get("title"),
+        "description": item.get("description"),
+        "sourceName": item.get("sourceName"),
+        "sourceUrl": item.get("sourceUrl"),
+        "publishedAt": item.get("publishedAt"),
+    }
+
+    try:
+        response = await client.chat.completions.create(
+            model=settings.openai_model,
+            temperature=0.2,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Voce prepara rascunhos editoriais originais sobre corrida. "
+                        "Nao copie a materia. Retorne somente JSON com suggestedTitle, summary, "
+                        "category em RACE, HEALTH, PERFORMANCE, MARKET ou GENERAL, e confidence 0-1."
+                    ),
+                },
+                {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
+            ],
+        )
+        content = response.choices[0].message.content or ""
+        data = _parse_json_object(content)
+        category = str(data.get("category") or "GENERAL").upper()
+        if category not in {"RACE", "HEALTH", "PERFORMANCE", "MARKET", "GENERAL"}:
+            category = "GENERAL"
+        return NewsSuggestion(
+            suggested_title=str(data.get("suggestedTitle") or data.get("suggested_title") or "").strip()[:140],
+            summary=str(data.get("summary") or "").strip()[:900],
+            category=category,
+            confidence=_clamp_confidence(float(data.get("confidence", 0.5))),
+        )
+    except Exception as exc:
+        logger.warning("AI news suggestion failed, using heuristic fallback: %s", exc)
+        return heuristic_news_suggestion(item)
