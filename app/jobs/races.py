@@ -100,6 +100,7 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         continue
 
                     classification = await classify_race_tier(race_data)
+                    created_at = utc_now()
                     race = DiscoveredRace(
                         id=str(uuid.uuid4()),
                         title=race_data["title"],
@@ -115,6 +116,8 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         aiSummary=classification.summary,
                         rawPayload=race_data.get("rawPayload"),
                         discoveryRunId=run.id,
+                        createdAt=created_at,
+                        updatedAt=created_at,
                     )
                     session.add(race)
                     items_new += 1
