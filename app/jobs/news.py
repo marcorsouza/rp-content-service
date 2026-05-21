@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
@@ -19,6 +18,7 @@ from app.models import (
     DiscoveryRunStatus,
 )
 from app.parsers.news_rss import fetch_news
+from app.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ async def _is_duplicate(session: AsyncSession, source_url: str) -> bool:
 
 
 async def run_news_job(session: AsyncSession) -> dict:
-    now = datetime.now(tz=timezone.utc)
+    now = utc_now()
     run = ContentDiscoveryRun(
         id=str(uuid.uuid4()),
         type=ContentSourceType.NEWS,
@@ -87,7 +87,7 @@ async def run_news_job(session: AsyncSession) -> dict:
         items_new += 1
 
     run.status = DiscoveryRunStatus.DONE if not errors else DiscoveryRunStatus.FAILED
-    run.finishedAt = datetime.now(tz=timezone.utc)
+    run.finishedAt = utc_now()
     run.itemsFound = items_found
     run.itemsNew = items_new
     run.itemsDuplicate = items_duplicate
