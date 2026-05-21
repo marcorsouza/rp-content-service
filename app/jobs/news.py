@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import suggest_news_draft
+from app.config import get_settings
 from app.models import (
     ContentDiscoveryRun,
     ContentSourceType,
@@ -17,6 +18,7 @@ from app.models import (
     DiscoveredNewsCategory,
     DiscoveryRunStatus,
 )
+from app.news_ranking import rank_news_items
 from app.parsers.news_rss import fetch_news
 from app.time import utc_now
 
@@ -24,11 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 async def _is_duplicate(session: AsyncSession, source_url: str) -> bool:
-    result = await session.execute(select(DiscoveredNews.id).where(DiscoveredNews.sourceUrl == source_url))
+    result = await session.execute(
+        select(DiscoveredNews.id).where(DiscoveredNews.sourceUrl == source_url)
+    )
     return result.scalar_one_or_none() is not None
 
 
 async def run_news_job(session: AsyncSession) -> dict:
+    settings = get_settings()
     now = utc_now()
     run = ContentDiscoveryRun(
         id=str(uuid.uuid4()),
@@ -57,7 +62,11 @@ async def run_news_job(session: AsyncSession) -> dict:
             logger.exception("News parser error")
 
     items_found = len(raw_items)
-    for item in raw_items:
+    ranked_items = rank_news_items(raw_items, settings, now=now)
+    items_filtered = items_found - len(ranked_items)
+
+    for ranked_item in ranked_items:
+        item = ranked_item.item
         source_url = item["sourceUrl"]
         if source_url in seen_urls:
             items_duplicate += 1
@@ -94,13 +103,19 @@ async def run_news_job(session: AsyncSession) -> dict:
     run.itemsFound = items_found
     run.itemsNew = items_new
     run.itemsDuplicate = items_duplicate
-    run.errors = {"errors": errors} if errors else None
+    run.errors = (
+        {"errors": errors, "filtered": items_filtered}
+        if errors
+        else {"filtered": items_filtered}
+    )
 
     await session.commit()
 
     return {
         "runId": run.id,
         "itemsFound": items_found,
+        "itemsRanked": len(ranked_items),
+        "itemsFiltered": items_filtered,
         "itemsNew": items_new,
         "itemsDuplicate": items_duplicate,
         "errors": errors,
