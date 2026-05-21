@@ -6,12 +6,12 @@ import uuid
 from datetime import datetime
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import classify_race_tier
-from app.models import ContentDiscoveryRun, ContentSourceType, DiscoveredContentStatus, DiscoveredRace, DiscoveryRunStatus
-from app.parsers import minhas_inscricoes, ticket_sports
+from app.models import ContentDiscoveryRun, ContentSource, ContentSourceType, DiscoveredContentStatus, DiscoveredRace, DiscoveryRunStatus
+from app.parsers import minhas_inscricoes, ticket_sports, ical
 from app.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -73,54 +73,79 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
     errors: list[str] = []
     seen_keys: set[str] = set()  # within-run dedup
 
+    # Load active iCal sources from DB, filtered by state if requested
+    ical_sources_result = await session.execute(
+        select(ContentSource).where(
+            and_(
+                ContentSource.type == ContentSourceType.RACE,
+                ContentSource.isActive.is_(True),
+            )
+        )
+    )
+    ical_sources = ical_sources_result.scalars().all()
+    if state:
+        ical_sources = [s for s in ical_sources if not s.state or s.state.upper() == state.upper()]
+
+    all_raw: list[dict] = []
+
     async with httpx.AsyncClient(
         headers={"User-Agent": "RunPersonal-ContentRadar/1.0 (+https://runnerpersonal.zenslab.com.br)"},
         timeout=20,
     ) as client:
+        # Hardcoded parsers (Ticket Sports + Minhas Inscrições)
         for uf in states:
             for parser in (ticket_sports, minhas_inscricoes):
                 try:
                     raw = await parser.fetch_races(uf, client)
+                    all_raw.extend(raw)
                 except Exception as exc:
                     errors.append(f"{parser.SOURCE_NAME} {uf}: {exc}")
                     logger.exception("Parser error: %s %s", parser.SOURCE_NAME, uf)
-                    continue
 
-                items_found += len(raw)
+        # iCal sources from DB
+        for source in ical_sources:
+            try:
+                raw = await ical.fetch_races(source.name, source.baseUrl, source.state, client)
+                all_raw.extend(raw)
+            except Exception as exc:
+                errors.append(f"iCal {source.name}: {exc}")
+                logger.exception("iCal parser error: %s", source.name)
 
-                for race_data in raw:
-                    key = _dedup_key(race_data)
-                    if key in seen_keys:
-                        items_duplicate += 1
-                        continue
-                    seen_keys.add(key)
+    items_found = len(all_raw)
 
-                    if await _is_duplicate(session, race_data):
-                        items_duplicate += 1
-                        continue
+    for race_data in all_raw:
+        key = _dedup_key(race_data)
+        if key in seen_keys:
+            items_duplicate += 1
+            continue
+        seen_keys.add(key)
 
-                    classification = await classify_race_tier(race_data)
-                    created_at = utc_now()
-                    race = DiscoveredRace(
-                        id=str(uuid.uuid4()),
-                        title=race_data["title"],
-                        state=race_data.get("state"),
-                        city=race_data.get("city"),
-                        eventDate=race_data.get("eventDate"),
-                        location=race_data.get("location"),
-                        sourceUrl=race_data["sourceUrl"],
-                        sourceName=race_data["sourceName"],
-                        tier=classification.tier,
-                        confidence=classification.confidence,
-                        status=DiscoveredContentStatus.NEW,
-                        aiSummary=classification.summary,
-                        rawPayload=race_data.get("rawPayload"),
-                        discoveryRunId=run.id,
-                        createdAt=created_at,
-                        updatedAt=created_at,
-                    )
-                    session.add(race)
-                    items_new += 1
+        if await _is_duplicate(session, race_data):
+            items_duplicate += 1
+            continue
+
+        classification = await classify_race_tier(race_data)
+        created_at = utc_now()
+        race = DiscoveredRace(
+            id=str(uuid.uuid4()),
+            title=race_data["title"],
+            state=race_data.get("state"),
+            city=race_data.get("city"),
+            eventDate=race_data.get("eventDate"),
+            location=race_data.get("location"),
+            sourceUrl=race_data["sourceUrl"],
+            sourceName=race_data["sourceName"],
+            tier=classification.tier,
+            confidence=classification.confidence,
+            status=DiscoveredContentStatus.NEW,
+            aiSummary=classification.summary,
+            rawPayload=race_data.get("rawPayload"),
+            discoveryRunId=run.id,
+            createdAt=created_at,
+            updatedAt=created_at,
+        )
+        session.add(race)
+        items_new += 1
 
     run.status = DiscoveryRunStatus.DONE if not errors else DiscoveryRunStatus.FAILED
     run.finishedAt = utc_now()
