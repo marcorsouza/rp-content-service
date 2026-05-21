@@ -49,6 +49,10 @@ rp-content-service/
 | `DATABASE_URL` | URL do PostgreSQL compartilhado com o frontend. |
 | `API_KEY` | Chave exigida em endpoints internos. |
 | `OPENAI_API_KEY` | Chave para classificacao e resumo via IA. Opcional no MVP. |
+| `OPENAI_MODEL` | Modelo usado para classificacao e resumos. Padrao: `gpt-4o-mini`. |
+| `SCHEDULER_ENABLED` | Liga o APScheduler interno. Padrao: `false`. |
+| `SCHEDULER_RACES_HOUR` / `SCHEDULER_RACES_MINUTE` | Horario diario do radar de corridas no fuso de Sao Paulo. Padrao: `05:00`. |
+| `SCHEDULER_RACES_STATES` | UFs processadas pelo job diario, separadas por virgula. Padrao: `SP,RJ,MG`. |
 | `LOG_LEVEL` | Nivel de log. Padrao: `INFO`. |
 
 ## Desenvolvimento
@@ -76,13 +80,13 @@ poetry run pytest
 | Metodo | Rota | Descricao |
 | --- | --- | --- |
 | `GET` | `/health` | Status do servico. |
+| `POST` | `/jobs/races/run` | Executa descoberta de corridas sob demanda. |
+| `POST` | `/jobs/news/run` | Executa descoberta de noticias sob demanda. |
 
 Endpoints planejados:
 
 | Metodo | Rota | Descricao |
 | --- | --- | --- |
-| `POST` | `/jobs/races/run` | Executa descoberta de corridas sob demanda. |
-| `POST` | `/jobs/news/run` | Executa descoberta de noticias sob demanda. |
 | `GET` | `/sources` | Lista fontes monitoradas. |
 | `POST` | `/sources` | Cadastra fonte monitorada. |
 
@@ -91,6 +95,7 @@ Endpoints planejados:
 - O servico nao deve publicar corrida ou noticia automaticamente.
 - Todo resultado descoberto deve entrar como pendente de revisao.
 - Todo conteudo gerado por IA deve preservar link da fonte.
+- Sem `OPENAI_API_KEY`, o servico usa classificacao heuristica para nao bloquear demo/dev.
 - Noticias devem ser resumidas em texto original, sem copiar materia integral.
 - Corridas devem ser deduplicadas por nome, data, cidade/estado e fonte.
 

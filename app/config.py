@@ -16,7 +16,20 @@ class Settings(BaseSettings):
     database_url: str = ""
     api_key: str = "dev-content-api-key"
     openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+    scheduler_enabled: bool = False
+    scheduler_races_hour: int = 5
+    scheduler_races_minute: int = 0
+    scheduler_races_states: str = "SP,RJ,MG"
     log_level: str = "INFO"
+
+    @property
+    def scheduler_state_list(self) -> list[str]:
+        return [
+            state.strip().upper()
+            for state in self.scheduler_races_states.split(",")
+            if state.strip()
+        ]
 
     @property
     def docs_enabled(self) -> bool:
