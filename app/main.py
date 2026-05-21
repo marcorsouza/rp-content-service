@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db import get_session
+from app.jobs.news import run_news_job
 from app.jobs.races import run_races_job
 from app.scheduler import start_scheduler, stop_scheduler
 
@@ -58,4 +59,11 @@ async def jobs_races_run(
     - `state`: UF opcional (ex: SP, RJ). Se omitido, roda para todos os estados suportados.
     """
     result = await run_races_job(session, state=state)
+    return result
+
+
+@app.post("/jobs/news/run", tags=["jobs"], dependencies=[Depends(require_api_key)])
+async def jobs_news_run(session: AsyncSession = Depends(get_session)) -> dict:
+    """Executa descoberta de noticias via RSS."""
+    result = await run_news_job(session)
     return result
