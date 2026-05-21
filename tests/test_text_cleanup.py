@@ -1,4 +1,4 @@
-from app.text_cleanup import clean_external_text, split_title_source
+from app.text_cleanup import clean_external_text, clean_news_description, split_title_source
 
 
 def test_clean_external_text_decodes_entities_and_removes_html():
@@ -12,3 +12,14 @@ def test_split_title_source_removes_google_news_publisher_suffix():
 
     assert title == "Pesquisa: Mercado de corrida de rua tem maioria feminina"
     assert source == "Máquina do Esporte"
+
+
+def test_clean_news_description_removes_title_and_source_duplication():
+    assert (
+        clean_news_description(
+            "Pesquisa: Mercado de corrida de rua tem maioria feminina Máquina do Esporte",
+            "Pesquisa: Mercado de corrida de rua tem maioria feminina",
+            "Máquina do Esporte",
+        )
+        == ""
+    )

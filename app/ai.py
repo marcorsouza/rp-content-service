@@ -10,7 +10,7 @@ from datetime import datetime
 from openai import AsyncOpenAI
 
 from app.config import get_settings
-from app.text_cleanup import clean_external_text, split_title_source
+from app.text_cleanup import clean_external_text, clean_news_description, split_title_source
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,11 @@ async def classify_race_tier(race: dict) -> RaceClassification:
 
 def heuristic_news_suggestion(item: dict) -> NewsSuggestion:
     title, _source = split_title_source(str(item.get("originalTitle") or item.get("title") or ""))
-    description = clean_external_text(str(item.get("description") or ""))
+    description = clean_news_description(
+        str(item.get("description") or ""),
+        title,
+        str(item.get("sourceName") or ""),
+    )
     text = f"{title} {description}".lower()
 
     if any(keyword in text for keyword in ("maratona", "corrida", "prova", "inscricao", "calendario")):
@@ -167,7 +171,7 @@ def heuristic_news_suggestion(item: dict) -> NewsSuggestion:
 
     suggested_title = title[:120] if title else "Noticia de corrida para revisar"
     summary = description[:500] if description else (
-        "Resumo pendente de revisao editorial. Confirmar conteudo na fonte antes de publicar."
+        f"Noticia para curadoria sobre: {title}. Confirmar detalhes na fonte antes de publicar."
     )
     return NewsSuggestion(
         suggested_title=suggested_title,

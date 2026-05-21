@@ -8,7 +8,7 @@ from email.utils import parsedate_to_datetime
 import feedparser
 import httpx
 
-from app.text_cleanup import clean_external_text, split_title_source
+from app.text_cleanup import clean_news_description, split_title_source
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,10 @@ async def fetch_news(client: httpx.AsyncClient, feeds: tuple[tuple[str, str], ..
             link = str(getattr(entry, "link", "")).strip()
             if not title or not link:
                 continue
-            description = clean_external_text(
-                str(getattr(entry, "summary", "") or getattr(entry, "description", "")).strip()
+            description = clean_news_description(
+                str(getattr(entry, "summary", "") or getattr(entry, "description", "")).strip(),
+                title,
+                publisher,
             )
             items.append(
                 {
