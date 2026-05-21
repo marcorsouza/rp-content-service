@@ -104,11 +104,7 @@ async def run_news_job(session: AsyncSession) -> dict:
     run.itemsFound = items_found
     run.itemsNew = items_new
     run.itemsDuplicate = items_duplicate
-    run.errors = (
-        {"errors": errors, "filtered": items_filtered}
-        if errors
-        else {"filtered": items_filtered}
-    )
+    run.errors = {"errors": errors} if errors else None
 
     await session.commit()
 
