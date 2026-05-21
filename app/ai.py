@@ -10,6 +10,7 @@ from datetime import datetime
 from openai import AsyncOpenAI
 
 from app.config import get_settings
+from app.text_cleanup import clean_external_text, split_title_source
 
 logger = logging.getLogger(__name__)
 
@@ -149,8 +150,8 @@ async def classify_race_tier(race: dict) -> RaceClassification:
 
 
 def heuristic_news_suggestion(item: dict) -> NewsSuggestion:
-    title = str(item.get("originalTitle") or item.get("title") or "").strip()
-    description = str(item.get("description") or "").strip()
+    title, _source = split_title_source(str(item.get("originalTitle") or item.get("title") or ""))
+    description = clean_external_text(str(item.get("description") or ""))
     text = f"{title} {description}".lower()
 
     if any(keyword in text for keyword in ("maratona", "corrida", "prova", "inscricao", "calendario")):
@@ -165,8 +166,7 @@ def heuristic_news_suggestion(item: dict) -> NewsSuggestion:
         category = "GENERAL"
 
     suggested_title = title[:120] if title else "Noticia de corrida para revisar"
-    clean_description = re.sub(r"<[^>]+>", "", description).strip()
-    summary = clean_description[:500] if clean_description else (
+    summary = description[:500] if description else (
         "Resumo pendente de revisao editorial. Confirmar conteudo na fonte antes de publicar."
     )
     return NewsSuggestion(
@@ -213,8 +213,10 @@ async def suggest_news_draft(item: dict) -> NewsSuggestion:
         if category not in {"RACE", "HEALTH", "PERFORMANCE", "MARKET", "GENERAL"}:
             category = "GENERAL"
         return NewsSuggestion(
-            suggested_title=str(data.get("suggestedTitle") or data.get("suggested_title") or "").strip()[:140],
-            summary=str(data.get("summary") or "").strip()[:900],
+            suggested_title=split_title_source(
+                str(data.get("suggestedTitle") or data.get("suggested_title") or "")
+            )[0][:140],
+            summary=clean_external_text(str(data.get("summary") or ""))[:900],
             category=category,
             confidence=_clamp_confidence(float(data.get("confidence", 0.5))),
         )
