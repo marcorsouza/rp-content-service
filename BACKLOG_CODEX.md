@@ -193,23 +193,23 @@ DiscoveredNews
 > Descoberta manual por demanda, approval humano, sem IA de tier.
 
 **rp-content-service:**
-- [ ] Endpoint `POST /jobs/races/run?state=SP`
-- [ ] Integração com Ticket Sports (parser básico)
-- [ ] Integração com Minhas Inscrições (parser básico)
-- [ ] Deduplicação por `title + eventDate + city`
-- [ ] Salvar como `status: NEW` no banco
+- [x] Endpoint `POST /jobs/races/run?state=SP`
+- [x] Integração com Ticket Sports (parser básico)
+- [x] Integração com Minhas Inscrições (parser básico)
+- [x] Deduplicação por `title + eventDate + city`
+- [x] Salvar como `status: NEW` no banco
 
 **rp-frontend:**
-- [ ] Schema Prisma: modelos `ContentSource`, `ContentDiscoveryRun`, `DiscoveredRace`
-- [ ] Migration SQL correspondente
-- [ ] Entrada "Radar de Conteúdo" no `platform-sidebar.tsx`
-- [ ] Página `/platform/content-radar` — tab Corridas
+- [x] Schema Prisma: modelos `ContentSource`, `ContentDiscoveryRun`, `DiscoveredRace`
+- [x] Migration SQL correspondente
+- [x] Entrada "Radar de Conteúdo" no `platform-sidebar.tsx`
+- [x] Página `/platform/content-radar` — tab Corridas
   - Lista de `DiscoveredRace` com tier, confidence, status, fonte
   - Ação **Aprovar** → cria `RaceEvent` (DRAFT para o admin revisar antes de publicar)
   - Ação **Rejeitar** → `status: REJECTED`
   - Ação **Marcar duplicado** → `status: DUPLICATE`
   - Ação **Editar antes de aprovar** → modal com campos editáveis
-- [ ] API routes:
+- [x] API routes:
   - `GET /api/platform/content-radar/races`
   - `POST /api/platform/content-radar/races/[id]/approve`
   - `POST /api/platform/content-radar/races/[id]/reject`
@@ -276,14 +276,14 @@ DiscoveredNews
 | # | Repo | Item | MVP | Status |
 |---|------|------|-----|--------|
 | 1 | rp-content-service | Scaffold FastAPI + health | — | ✅ |
-| 2 | rp-frontend | Schema Prisma: `ContentSource`, `ContentDiscoveryRun`, `DiscoveredRace` + migration | 1 | 📋 |
-| 3 | rp-content-service | Endpoint `POST /jobs/races/run` | 1 | 📋 |
-| 4 | rp-content-service | Parser Ticket Sports | 1 | 📋 |
-| 5 | rp-content-service | Parser Minhas Inscrições | 1 | 📋 |
-| 6 | rp-content-service | Deduplicação + salvar como NEW | 1 | 📋 |
-| 7 | rp-frontend | Sidebar platform: entrada "Radar de Conteúdo" | 1 | 📋 |
-| 8 | rp-frontend | Página `/platform/content-radar` — tab Corridas + ações | 1 | 📋 |
-| 9 | rp-frontend | API routes approve/reject/duplicate/edit (corridas) | 1 | 📋 |
+| 2 | rp-frontend | Schema Prisma: `ContentSource`, `ContentDiscoveryRun`, `DiscoveredRace` + migration | 1 | ✅ |
+| 3 | rp-content-service | Endpoint `POST /jobs/races/run` | 1 | ✅ |
+| 4 | rp-content-service | Parser Ticket Sports | 1 | ✅ |
+| 5 | rp-content-service | Parser Minhas Inscrições | 1 | ✅ |
+| 6 | rp-content-service | Deduplicação + salvar como NEW | 1 | ✅ |
+| 7 | rp-frontend | Sidebar platform: entrada "Radar de Conteúdo" | 1 | ✅ |
+| 8 | rp-frontend | Página `/platform/content-radar` — tab Corridas + ações | 1 | ✅ |
+| 9 | rp-frontend | API routes approve/reject/duplicate/edit (corridas) | 1 | ✅ |
 | 10 | rp-content-service | Classificação tier por IA (OpenAI) + confidence | 2 | 📋 |
 | 11 | rp-frontend | Tab "Fontes" + CRUD de ContentSource | 2 | 📋 |
 | 12 | rp-frontend | Tab "Histórico" — ContentDiscoveryRun | 2 | 📋 |
