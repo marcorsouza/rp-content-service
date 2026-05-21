@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 # iCal property value with optional parameters, e.g. "DTSTART;TZID=America/Sao_Paulo:20260601T080000"
 _PROP_RE = re.compile(r"^([A-Z\-]+)(?:;[^:]+)?:(.*)$")
 
+# Brazilian state full names → abbreviation
+_BR_STATE_MAP: dict[str, str] = {
+    "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM",
+    "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF", "Espírito Santo": "ES",
+    "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT", "Mato Grosso do Sul": "MS",
+    "Minas Gerais": "MG", "Pará": "PA", "Paraíba": "PB", "Paraná": "PR",
+    "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+    "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR", "Santa Catarina": "SC",
+    "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO",
+}
+_BR_STATE_ABBR: frozenset[str] = frozenset(_BR_STATE_MAP.values())
+
 
 def _unfold(text: str) -> list[str]:
     """Join continuation lines (RFC 5545 §3.1)."""
@@ -65,13 +77,50 @@ def _parse_events(ical_text: str) -> list[dict[str, str]]:
     return events
 
 
-def _city_from_location(location: str) -> str | None:
-    """Best-effort city extraction from iCal LOCATION string."""
+def _extract_city_state(location: str) -> tuple[str | None, str | None]:
+    """
+    Extract (city, state_abbr) from an iCal LOCATION string.
+
+    Handles formats produced by WordPress "The Events Calendar" plugin:
+      "Venue, Street, Number, City, Full State Name, ZIP, Country"
+      "Venue, City, ST, ZIP, Country"
+      "City, ST, Brasil"
+    Returns (city, state_abbreviation) — either may be None.
+    """
     parts = [p.strip() for p in location.split(",")]
-    # Typical formats: "Venue, City, State" or "City, State, Country"
-    if len(parts) >= 2:
-        return parts[-2]
-    return parts[0] if parts else None
+    city: str | None = None
+    state: str | None = None
+
+    for i, part in enumerate(parts):
+        # Match full state name (e.g. "Rio Grande do Sul")
+        if part in _BR_STATE_MAP:
+            state = _BR_STATE_MAP[part]
+            city = parts[i - 1] if i > 0 else None
+            break
+
+        upper = part.upper()
+
+        # Match bare abbreviation (e.g. "RS")
+        if upper in _BR_STATE_ABBR:
+            state = upper
+            city = parts[i - 1] if i > 0 else None
+            break
+
+        # Match abbreviation followed by ZIP (e.g. "RS 90030-000" or "RS90030000")
+        for abbr in _BR_STATE_ABBR:
+            if upper.startswith(abbr + " ") or upper.startswith(abbr + "-") or re.match(rf"^{abbr}\d", upper):
+                state = abbr
+                city = parts[i - 1] if i > 0 else None
+                break
+        if state:
+            break
+
+    # Fallback: second-to-last part (skip common country strings)
+    if not city:
+        candidates = [p for p in parts if p.lower() not in ("brasil", "brazil", "br", "")]
+        city = candidates[-2] if len(candidates) >= 2 else (candidates[-1] if candidates else None)
+
+    return city, state
 
 
 async def fetch_races(
@@ -100,14 +149,16 @@ async def fetch_races(
         event_date = _parse_dt(event.get("DTSTART", "")) if event.get("DTSTART") else None
         link = event.get("URL", "").strip() or ical_url
 
+        city, state = _extract_city_state(location) if location else (None, None)
+
         races.append(
             {
                 "title": title,
                 "sourceUrl": link,
                 "sourceName": source_name,
                 "eventDate": event_date,
-                "state": default_state,
-                "city": _city_from_location(location) if location else None,
+                "state": state or default_state,
+                "city": city,
                 "location": location or None,
                 "rawPayload": dict(event),
             }
