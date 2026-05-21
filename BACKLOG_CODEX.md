@@ -13,26 +13,55 @@
 | Linguagem | Python 3.12 | Melhor ecossistema para scraping, IA, parsers |
 | Framework | FastAPI | Consistente com rp-garmin-service |
 | Scheduler | APScheduler (depois Celery+Redis) | Simples no MVP, escalável depois |
-| Banco | PostgreSQL compartilhado | Novas tabelas no mesmo DB, Prisma faz as migrations |
+| Banco | **PostgreSQL compartilhado** — mesmo banco do app | Ver seção abaixo |
 | IA | OpenAI SDK | Classificação de tier e geração de resumo |
 | Autenticação | X-API-Key | Igual ao Garmin Service |
 | Publicação | Nunca automática | Admin revisa no /platform/content-radar |
 
+### Banco de dados — por que compartilhado
+
+O `rp-content-service` **não tem banco próprio**. Ele conecta ao mesmo `run_personal_prod` (e `dev`/`stage`/`demo`) que o `rp-frontend` já usa.
+
+É o mesmo padrão do `rp-garmin-service`: o Prisma (rp-frontend) é dono do schema e das migrations. O serviço Python recebe o `DATABASE_URL` e escreve diretamente nas tabelas via SQLAlchemy/psycopg2 — sem gerenciar migrations.
+
+**Por que não banco separado:**
+
+| Ponto | Banco separado | Banco compartilhado ✅ |
+|-------|---------------|----------------------|
+| "Aprovar corrida" cria `RaceEvent` | API call entre serviços + transação distribuída | Query direta no mesmo banco |
+| Admin vê lista de descobertas | Frontend chama API do content-service | Frontend lê via Prisma diretamente |
+| Migrations | Dois schemas para manter em sincronia | Prisma cuida de tudo |
+| Backup/restore | Dois bancos | Um banco |
+| Precedente | — | Igual ao garmin-service (escreve em `Activity`, `GarminConnection` etc.) |
+
+**Responsabilidades por repo:**
+
+| Repo | Responsabilidade |
+|------|-----------------|
+| `rp-frontend` (Prisma) | Define e migra o schema de **todas** as tabelas, incluindo `ContentSource`, `DiscoveredRace`, `DiscoveredNews` |
+| `rp-content-service` (Python) | Conecta ao mesmo `DATABASE_URL`, **escreve** nas tabelas de descoberta |
+| `rp-frontend` (Next.js) | Lê via Prisma no `/platform/content-radar`, admin aprova → cria `RaceEvent` ou `NewsPost` na mesma transação |
+
 ### Fluxo de comunicação
 
 ```
-rp-content-service          PostgreSQL           rp-frontend
-    (Python)                  (DB)               (Next.js)
-       │                        │                     │
-       │── busca fontes ──────► │                     │
-       │── normaliza ─────────► │                     │
-       │── classifica ────────► │                     │
-       │── gera rascunho ─────► │                     │
-       │── salva como NEW ────► │                     │
-       │                        │◄── admin revisa ────│
-       │                        │◄── edita/aprova ────│
-       │                        │──► publica ─────────│
+rp-content-service                PostgreSQL (compartilhado)         rp-frontend
+    (Python)                        run_personal_prod                  (Next.js)
+       │                                    │                              │
+       │  busca fontes externas             │                              │
+       │  normaliza + deduplica             │                              │
+       │  classifica tier (IA)             │                              │
+       │  gera resumo/sugestão (IA)        │                              │
+       │──── escreve DiscoveredRace ──────►│                              │
+       │──── escreve DiscoveredNews ──────►│                              │
+       │                                    │                              │
+       │                                    │◄──── admin revisa ───────────│
+       │                                    │◄──── edita / aprova ─────────│
+       │                                    │────► cria RaceEvent ─────────│
+       │                                    │────── (mesma query) ─────────│
 ```
+
+> Nenhuma chamada HTTP entre `rp-content-service` e `rp-frontend`. Os dois falam com o banco diretamente.
 
 ---
 
