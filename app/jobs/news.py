@@ -70,6 +70,7 @@ async def run_news_job(session: AsyncSession) -> dict:
 
         suggestion = await suggest_news_draft(item)
         category = DiscoveredNewsCategory(suggestion.category)
+        created_at = utc_now()
         news = DiscoveredNews(
             id=str(uuid.uuid4()),
             originalTitle=item["originalTitle"],
@@ -82,6 +83,8 @@ async def run_news_job(session: AsyncSession) -> dict:
             status=DiscoveredContentStatus.NEW,
             rawPayload=item.get("rawPayload"),
             discoveryRunId=run.id,
+            createdAt=created_at,
+            updatedAt=created_at,
         )
         session.add(news)
         items_new += 1
