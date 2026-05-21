@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db import get_session
 from app.jobs.races import run_races_job
+from app.scheduler import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
@@ -35,6 +36,16 @@ async def health() -> dict[str, str]:
         "service": "run-personal-content-service",
         "environment": settings.app_env,
     }
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    stop_scheduler()
 
 
 @app.post("/jobs/races/run", tags=["jobs"], dependencies=[Depends(require_api_key)])
