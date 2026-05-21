@@ -50,6 +50,9 @@ rp-content-service/
 | `API_KEY` | Chave exigida em endpoints internos. |
 | `OPENAI_API_KEY` | Chave para classificacao e resumo via IA. Opcional no MVP. |
 | `OPENAI_MODEL` | Modelo usado para classificacao e resumos. Padrao: `gpt-4o-mini`. |
+| `SCHEDULER_ENABLED` | Liga o APScheduler interno. Padrao: `false`. |
+| `SCHEDULER_RACES_HOUR` / `SCHEDULER_RACES_MINUTE` | Horario diario do radar de corridas no fuso de Sao Paulo. Padrao: `05:00`. |
+| `SCHEDULER_RACES_STATES` | UFs processadas pelo job diario, separadas por virgula. Padrao: `SP,RJ,MG`. |
 | `LOG_LEVEL` | Nivel de log. Padrao: `INFO`. |
 
 ## Desenvolvimento
