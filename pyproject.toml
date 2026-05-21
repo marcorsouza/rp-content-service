@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rp-content-service"
-version = "0.1.4"
+version = "0.1.5"
 description = "Run Personal content discovery and editorial radar service"
 authors = ["Run Personal <contato@runpersonal.com.br>"]
 readme = "README.md"
