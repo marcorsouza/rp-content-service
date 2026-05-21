@@ -110,6 +110,7 @@ class DiscoveredNews(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     originalTitle: Mapped[str] = mapped_column(String, nullable=False)
     suggestedTitle: Mapped[str | None] = mapped_column(String, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     sourceUrl: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     sourceName: Mapped[str] = mapped_column(String, nullable=False)
@@ -120,6 +121,7 @@ class DiscoveredNews(Base):
     status: Mapped[DiscoveredContentStatus] = mapped_column(
         Enum(DiscoveredContentStatus, name="DiscoveredContentStatus"), default=DiscoveredContentStatus.NEW
     )
+    imageUrl: Mapped[str | None] = mapped_column(String, nullable=True)
     rawPayload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     discoveryRunId: Mapped[str | None] = mapped_column(
         String, ForeignKey("ContentDiscoveryRun.id", ondelete="SET NULL"), nullable=True

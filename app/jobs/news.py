@@ -84,6 +84,7 @@ async def run_news_job(session: AsyncSession) -> dict:
             id=str(uuid.uuid4()),
             originalTitle=item["originalTitle"],
             suggestedTitle=suggestion.suggested_title,
+            description=item.get("description") or None,
             summary=suggestion.summary,
             sourceUrl=source_url,
             sourceName=item["sourceName"],
