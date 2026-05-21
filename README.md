@@ -53,6 +53,12 @@ rp-content-service/
 | `SCHEDULER_ENABLED` | Liga o APScheduler interno. Padrao: `false`. |
 | `SCHEDULER_RACES_HOUR` / `SCHEDULER_RACES_MINUTE` | Horario diario do radar de corridas no fuso de Sao Paulo. Padrao: `05:00`. |
 | `SCHEDULER_RACES_STATES` | UFs processadas pelo job diario, separadas por virgula. Padrao: `SP,RJ,MG`. |
+| `NEWS_MAX_AGE_HOURS` | Janela maxima para aceitar noticias novas. Padrao: `72`. |
+| `NEWS_MAX_ITEMS_PER_RUN` | Limite de noticias ranqueadas por execucao. Padrao: `12`. |
+| `NEWS_MIN_SCORE` | Pontuacao minima para gravar uma noticia. Padrao: `35`. |
+| `NEWS_REQUIRE_PUBLISHED_AT` | Exige data de publicacao no feed para aceitar a noticia. Padrao: `true`. |
+| `NEWS_REQUIRED_TERMS` | Termos que precisam aparecer no titulo/resumo para a noticia ser candidata. |
+| `NEWS_BLOCKED_TERMS` | Termos que removem noticias fora do foco editorial. |
 | `LOG_LEVEL` | Nivel de log. Padrao: `INFO`. |
 
 ## Desenvolvimento
@@ -97,6 +103,8 @@ Endpoints planejados:
 - Todo conteudo gerado por IA deve preservar link da fonte.
 - Sem `OPENAI_API_KEY`, o servico usa classificacao heuristica para nao bloquear demo/dev.
 - Noticias devem ser resumidas em texto original, sem copiar materia integral.
+- Noticias precisam passar por filtro de novidade e ranking editorial antes de entrar na fila.
+- O ranking de noticias prioriza recencia, fonte, termos fortes e ganchos de engajamento como inscricoes, calendario, recordes e volume de participantes.
 - Corridas devem ser deduplicadas por nome, data, cidade/estado e fonte.
 
 ## Tiers de Corrida

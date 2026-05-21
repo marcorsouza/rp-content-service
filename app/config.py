@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     scheduler_races_hour: int = 5
     scheduler_races_minute: int = 0
     scheduler_races_states: str = "SP,RJ,MG"
+    news_max_age_hours: int = 72
+    news_max_items_per_run: int = 12
+    news_min_score: int = 35
+    news_require_published_at: bool = True
+    news_required_terms: str = (
+        "corrida,corrida de rua,maratona,meia maratona,trail,trail run,running"
+    )
+    news_blocked_terms: str = (
+        "futebol,loteria,crime,acidente,policia,política,politica,bbb,celebridade"
+    )
     log_level: str = "INFO"
 
     @property
@@ -34,6 +44,22 @@ class Settings(BaseSettings):
     @property
     def docs_enabled(self) -> bool:
         return self.app_env in {"development", "demo", "staging"}
+
+    @property
+    def news_required_term_list(self) -> list[str]:
+        return [
+            term.strip().lower()
+            for term in self.news_required_terms.split(",")
+            if term.strip()
+        ]
+
+    @property
+    def news_blocked_term_list(self) -> list[str]:
+        return [
+            term.strip().lower()
+            for term in self.news_blocked_terms.split(",")
+            if term.strip()
+        ]
 
 
 @lru_cache
