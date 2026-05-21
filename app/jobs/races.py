@@ -9,6 +9,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai import classify_race_tier
 from app.models import ContentDiscoveryRun, ContentSourceType, DiscoveredContentStatus, DiscoveredRace, DiscoveryRunStatus
 from app.parsers import minhas_inscricoes, ticket_sports
 
@@ -97,6 +98,7 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         items_duplicate += 1
                         continue
 
+                    classification = await classify_race_tier(race_data)
                     race = DiscoveredRace(
                         id=str(uuid.uuid4()),
                         title=race_data["title"],
@@ -106,7 +108,10 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         location=race_data.get("location"),
                         sourceUrl=race_data["sourceUrl"],
                         sourceName=race_data["sourceName"],
+                        tier=classification.tier,
+                        confidence=classification.confidence,
                         status=DiscoveredContentStatus.NEW,
+                        aiSummary=classification.summary,
                         rawPayload=race_data.get("rawPayload"),
                         discoveryRunId=run.id,
                     )
