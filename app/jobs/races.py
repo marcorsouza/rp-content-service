@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import httpx
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai import classify_race_tier
 from app.models import ContentDiscoveryRun, ContentSourceType, DiscoveredContentStatus, DiscoveredRace, DiscoveryRunStatus
 from app.parsers import minhas_inscricoes, ticket_sports
+from app.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
     Returns a summary dict.
     """
     states = [state.upper()] if state else SUPPORTED_STATES
-    now = datetime.now(tz=timezone.utc)
+    now = utc_now()
 
     run = ContentDiscoveryRun(
         id=str(uuid.uuid4()),
@@ -99,6 +100,7 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         continue
 
                     classification = await classify_race_tier(race_data)
+                    created_at = utc_now()
                     race = DiscoveredRace(
                         id=str(uuid.uuid4()),
                         title=race_data["title"],
@@ -114,12 +116,14 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
                         aiSummary=classification.summary,
                         rawPayload=race_data.get("rawPayload"),
                         discoveryRunId=run.id,
+                        createdAt=created_at,
+                        updatedAt=created_at,
                     )
                     session.add(race)
                     items_new += 1
 
     run.status = DiscoveryRunStatus.DONE if not errors else DiscoveryRunStatus.FAILED
-    run.finishedAt = datetime.now(tz=timezone.utc)
+    run.finishedAt = utc_now()
     run.itemsFound = items_found
     run.itemsNew = items_new
     run.itemsDuplicate = items_duplicate
