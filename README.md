@@ -117,7 +117,7 @@ Endpoints planejados:
 
 ## Branches
 
-- `main`: producao estavel.
-- `develop`: integracao e demo.
+- `main`: branch unica de deploy; atualiza demo e producao quando este servico entrar no auto-deploy.
+- `develop`: branch historica/legada, sem deploy automatico.
 - `feature/*`: desenvolvimento de funcionalidades.
-- `release/*`: estabilizacao de release.
+- `release/*`: estabilizacao de release, se o fluxo formal de release for reativado.
