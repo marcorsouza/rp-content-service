@@ -67,14 +67,28 @@ async def fetch_races(state: str, client: httpx.AsyncClient) -> list[dict]:
 
     await asyncio.sleep(1)  # rate limit
 
+    # Diagnóstico: logar se a resposta parece SPA (sem conteúdo renderizado)
+    body_preview = resp.text[:300].replace("\n", " ")
+    logger.debug("Ticket Sports %s response preview: %s", state, body_preview)
+    if len(resp.text) < 2000 or 'id="root"' in resp.text or 'id="app"' in resp.text:
+        logger.warning(
+            "Ticket Sports %s: resposta parece SPA (JavaScript rendering). "
+            "HTML length=%d. Seletores CSS provavelmente não funcionarão.",
+            state, len(resp.text),
+        )
+
     soup = BeautifulSoup(resp.text, "html.parser")
     races: list[dict] = []
 
-    # Ticket Sports event cards — selector may need updating if site changes
-    cards = soup.select("div.event-card, article.event-item, div.card-event")
+    # Ticket Sports event cards — selectors may need updating if site changes
+    cards = soup.select(
+        "div.event-card, article.event-item, div.card-event, "
+        "div[class*='event'], div[class*='card'], article[class*='event']"
+    )
     if not cards:
         # Fallback: look for any links with event-like text
-        cards = soup.select("a[href*='/evento/'], a[href*='/corrida/']")
+        cards = soup.select("a[href*='/evento/'], a[href*='/corrida/'], a[href*='/event/']")
+    logger.info("Ticket Sports %s: %d cards encontrados com seletores CSS", state, len(cards))
 
     for card in cards:
         title = (

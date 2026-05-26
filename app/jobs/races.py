@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import classify_race_tier
 from app.models import ContentDiscoveryRun, ContentSource, ContentSourceType, DiscoveredContentStatus, DiscoveredRace, DiscoveryRunStatus
-from app.parsers import minhas_inscricoes, ticket_sports, ical
+from app.parsers import google_races_rss, minhas_inscricoes, ticket_sports, ical
 from app.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -92,7 +92,16 @@ async def run_races_job(session: AsyncSession, state: str | None = None) -> dict
         headers={"User-Agent": "RunPersonal-ContentRadar/1.0 (+https://runnerpersonal.zenslab.com.br)"},
         timeout=20,
     ) as client:
-        # Hardcoded parsers (Ticket Sports + Minhas Inscrições)
+        # Google News RSS (mais confiável — não depende de seletores CSS)
+        for uf in states:
+            try:
+                raw = await google_races_rss.fetch_races(uf, client)
+                all_raw.extend(raw)
+            except Exception as exc:
+                errors.append(f"GoogleNewsRaces {uf}: {exc}")
+                logger.exception("Parser error: GoogleNewsRaces %s", uf)
+
+        # Hardcoded scrapers (Ticket Sports + Minhas Inscrições) — podem falhar em SPAs
         for uf in states:
             for parser in (ticket_sports, minhas_inscricoes):
                 try:
